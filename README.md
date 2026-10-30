@@ -21,6 +21,8 @@
 
 ## 启动
 
+本项目使用 Python 原生部署，不需要 Docker。Windows 可运行 `./scripts/start.ps1`，macOS/Linux 可运行 `sh scripts/start.sh`，脚本首次运行会创建虚拟环境并安装锁定依赖。
+
 Python 3.10+，Node 仅用于 JavaScript 语法检查：
 
 ```powershell
@@ -31,13 +33,7 @@ python -m venv .venv
 
 macOS/Linux 改用 `.venv/bin/python`。打开 http://localhost:8000 创建房间。手机须使用电脑局域网 IP（例如 `http://192.168.1.20:8000`），不能扫描 localhost；允许对应防火墙端口。同一浏览器分别保存主持和参与身份。
 
-```sh
-# .env 按需设置 PUBLIC_URL=https://workshop.example.com
-# 不设置时二维码默认使用当前访问地址；Compose 默认 localhost。
-docker compose up -d --build
-```
-
-环境变量：`DATABASE_PATH` 默认 `data/workshop.sqlite3`，`PUBLIC_URL` 为二维码使用的根地址。只运行一个 worker；暂不支持子路径。Docker 数据位于命名卷，`down -v` 会销毁卷。
+环境变量：`DATABASE_PATH` 默认 `data/workshop.sqlite3`，`PUBLIC_URL` 为二维码使用的根地址。只运行一个 worker；暂不支持子路径。数据直接保存在指定 SQLite 文件中，重启服务不会清空。
 
 GitHub 仅托管源码，当前没有公网部署。公网应通过 HTTPS 反代，关闭 SSE 缓冲并设置长连接超时。后端只向可信反代开放，配置网关防刷；不能把当前实现当成多租户企业服务。
 
@@ -69,6 +65,6 @@ node --check static/app.js
 
 本次 25 项测试通过，覆盖权限隔离、撤销、模板、复制、合并去重、恢复、人数冻结、版本冲突、幂等、旧库迁移与备份、60 身份同出口的心跳及反馈。浏览器已验证创建、步骤编排发布、卡点提交、回答与恢复、复盘入口。
 
-60 身份测试是本机短程接口测试，不是 30 分钟持续负载、真实设备或课堂容量证明。系统通知、多种手机浏览器、弱网长时运行和真实课堂效果仍需实测。当前 Docker 引擎状态未完成验证，镜像构建/运行未验证。GitHub 凭证缺少 workflow 权限，CI 配置仍以 [模板](docs/ci.yml.example) 提供，未启用，不能视作 CI 通过。
+60 身份测试是本机短程接口测试，不是 30 分钟持续负载、真实设备或课堂容量证明。系统通知、多种手机浏览器、弱网长时运行和真实课堂效果仍需实测。原生环境部署及跨设备验证以目标清单记录为准。GitHub 凭证缺少 workflow 权限，CI 配置仍以 [模板](docs/ci.yml.example) 提供，未启用，不能视作 CI 通过。
 
 [升级与回退](docs/upgrade-v030.md) · [研究与设计依据](docs/next-version-research.md) · [安全边界](SECURITY.md) · [贡献指南](CONTRIBUTING.md)
