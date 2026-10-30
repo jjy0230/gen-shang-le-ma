@@ -2,7 +2,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt requirements-lock.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -c requirements-lock.txt && useradd --create-home workshop
-COPY app.py .
+COPY app.py storage.py workshop.py ./
 COPY static ./static
 RUN mkdir /app/data && chown workshop:workshop /app/data
 USER workshop

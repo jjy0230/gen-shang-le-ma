@@ -348,3 +348,399 @@ progress::-webkit-progress-value {
   background: #80bc8e;
   border-radius: 8px;
 }
+/* Workspace controls and focused participant flow. */
+textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  border: 1px solid #c5d0c4;
+  border-radius: 9px;
+  padding: 12px;
+  font: inherit;
+  color: inherit;
+  background: white;
+}
+input[type="file"] {
+  font-size: 13px;
+}
+input[type="checkbox"] {
+  width: auto;
+}
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 10px 0;
+}
+details {
+  margin-top: 16px;
+}
+details > form {
+  margin-top: 8px;
+}
+.room-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.room-heading h1 {
+  font-size: 34px;
+  margin: 9px 0 28px;
+}
+.room-heading > .pill {
+  white-space: nowrap;
+  margin-top: 8px;
+}
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  background: #e9ede2;
+  border-radius: 13px;
+  margin-bottom: 28px;
+  overflow-x: auto;
+}
+.tabs button {
+  white-space: nowrap;
+  background: transparent;
+  color: #506353;
+  padding: 10px 17px;
+}
+.tabs .active {
+  background: #fff;
+  color: #193b32;
+  box-shadow: 0 2px 5px #183b3212;
+}
+.current-card h2 {
+  font-size: 27px;
+  line-height: 1.4;
+  margin: 12px 0;
+}
+.current-card .help-link {
+  color: #cbe6c7;
+}
+.criteria {
+  white-space: pre-wrap;
+  font-size: 16px;
+  color: #d8e8d8;
+}
+.empty {
+  padding: 20px 0;
+  color: #788474;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.section-head h2,
+.section-head h3 {
+  margin: 0;
+}
+.section-head + .muted {
+  margin-top: 10px;
+}
+.cohort-strip {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  margin: 10px 0 20px;
+  font-size: 13px;
+  color: #63725f;
+}
+.cohort-strip b {
+  font-size: 17px;
+  color: #193b32;
+  margin-left: 4px;
+}
+.issue-card {
+  padding: 20px 0;
+  border-top: 1px solid #e0e6db;
+}
+.issue-card:first-of-type {
+  border-top: 0;
+}
+.issue-counts {
+  display: flex;
+  gap: 13px;
+  flex-wrap: wrap;
+  color: #7c8174;
+  font-size: 12px;
+  margin: 12px 0;
+}
+.issue-counts b {
+  color: #9b543c;
+}
+.issue-card .actions {
+  margin: 14px 0;
+}
+.issue-card .actions button {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.issue-card h3 {
+  overflow-wrap: anywhere;
+}
+.answer {
+  padding: 16px 18px;
+  background: #edf3e7;
+  border-radius: 12px;
+  margin: 12px 0;
+}
+.answer p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+}
+.help-link {
+  display: inline-block;
+  font-size: 14px;
+  margin: 4px 0 12px;
+}
+.warning {
+  background: #f7e7cb;
+  color: #805725;
+}
+.announcement {
+  padding: 15px 20px;
+  border-radius: 12px;
+  background: #e4edda;
+  margin: 0 0 24px;
+  white-space: pre-wrap;
+}
+.seat-map {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+.seat {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid #d9e0d3;
+  border-left: 4px solid #a6afa6;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fafbf7;
+  overflow-wrap: anywhere;
+}
+.seat.done {
+  border-left-color: #3a875c;
+}
+.seat.working {
+  border-left-color: #b99130;
+}
+.seat.stuck {
+  border-left-color: #b45743;
+}
+.seat button {
+  font-size: 11px;
+  padding: 4px 8px;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+.seat strong {
+  font-size: 18px;
+}
+.seat span {
+  font-size: 13px;
+}
+.seat small {
+  font-size: 11px;
+}
+.timer {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 8px 0 15px;
+  font-variant-numeric: tabular-nums;
+}
+.timer + .actions {
+  margin-bottom: 16px;
+}
+.panel > .actions {
+  margin: 15px 0;
+}
+.panel > small {
+  display: block;
+  margin-top: 12px;
+}
+.plan-step h3 {
+  margin: 12px 0;
+}
+.plan-step p {
+  white-space: pre-wrap;
+}
+.reason-chips {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 15px 0;
+}
+.reason-chips button {
+  font-size: 13px;
+}
+.participant-shell {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.participant-shell .current-card {
+  margin-bottom: 12px;
+}
+.participant-shell .status-buttons {
+  margin: 12px 0 8px;
+}
+.participant-shell .status-buttons button {
+  padding: 20px 8px;
+}
+.participant-actions {
+  margin-bottom: 24px;
+}
+.feedback-line {
+  font-size: 13px;
+  color: #637760;
+  text-align: center;
+}
+.participant-shell .stats .stat strong {
+  font-size: 26px;
+}
+.participant-shell .stats {
+  margin: 15px 0;
+}
+.participant-shell .stats .stat {
+  padding: 12px;
+}
+.screen-shell {
+  max-width: 1050px;
+  margin: auto;
+}
+.screen-shell .current-card {
+  padding: 36px;
+}
+.screen-shell .current-card h2 {
+  font-size: 42px;
+}
+.screen-shell .stats .stat strong {
+  font-size: 64px;
+}
+.screen-cohort {
+  font-size: 20px;
+}
+.screen-shell .answer {
+  font-size: 20px;
+}
+dialog {
+  width: min(540px, 92vw);
+  max-height: 85vh;
+  overflow: auto;
+  border: 1px solid #d4decc;
+  border-radius: 18px;
+  padding: 28px;
+  color: #193b32;
+  box-shadow: 0 20px 80px #10251e40;
+}
+dialog::backdrop {
+  background: #10251e75;
+}
+dialog h2 {
+  margin-top: 0;
+}
+dialog textarea {
+  min-height: 120px;
+}
+.join-card {
+  max-width: 650px;
+  margin: auto;
+}
+.join-card h1 {
+  font-size: 34px;
+}
+@media (max-width: 800px) {
+  .room-heading h1 {
+    font-size: 26px;
+    margin-bottom: 22px;
+  }
+  .room-heading {
+    gap: 8px;
+  }
+  .room-heading > .pill {
+    font-size: 10px;
+  }
+  .participant-shell .current-card {
+    padding: 18px;
+  }
+  .participant-shell .current-card h2 {
+    font-size: 23px;
+  }
+  .participant-shell .criteria {
+    font-size: 14px;
+    margin: 8px 0;
+  }
+  .participant-shell .status-buttons button {
+    font-size: 15px;
+    padding: 18px 4px;
+  }
+  .participant-shell .current-card .eyebrow {
+    font-size: 10px;
+  }
+  .tabs button {
+    padding: 8px 13px;
+    font-size: 14px;
+  }
+  .screen-shell .current-card h2 {
+    font-size: 30px;
+  }
+  .screen-shell .stats .stat strong {
+    font-size: 42px;
+  }
+  .layout > aside {
+    min-width: 0;
+  }
+  .cohort-strip {
+    gap: 12px;
+  }
+  .section-head .actions {
+    margin-top: 12px;
+  }
+  .person {
+    gap: 12px;
+  }
+  .hero {
+    gap: 16px;
+  }
+}
+@media print {
+  header,
+  footer,
+  nav,
+  button,
+  input,
+  select,
+  form,
+  .actions {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: black;
+  }
+  main {
+    padding: 0;
+  }
+  .panel {
+    break-inside: avoid;
+    border-radius: 0;
+  }
+  .stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .room-heading h1 {
+    font-size: 25px;
+  }
+}

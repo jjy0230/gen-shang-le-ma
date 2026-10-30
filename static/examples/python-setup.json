@@ -1,0 +1,10 @@
+{
+  "format": "workshop-pulse/v1",
+  "title": "Python 环境安装带练",
+  "steps": [
+    {"title":"下载适合系统的 Python 安装包","criteria":"访问官网，确认系统与安装包类型；下载已完成。","link":"https://www.python.org/downloads/","reasons":["无法访问下载页","不确定选择哪个安装包","下载中断"],"tips":"先确认操作系统与处理器架构；不要从不明下载站安装软件。"},
+    {"title":"完成安装并打开终端","criteria":"安装程序成功结束；能打开新的终端窗口。","link":"https://docs.python.org/3/using/index.html","reasons":["没有安装权限","找不到安装选项","不知道怎样打开终端"],"tips":"不同系统安装步骤不同，请按照官方文档；修改环境变量后重新打开终端。"},
+    {"title":"验证 Python 与 pip","criteria":"在终端运行对应系统的 Python 版本命令，以及 python -m pip --version 或 python3 -m pip --version，均看到版本信息。","link":"https://docs.python.org/3/installing/index.html","reasons":["找不到 Python 命令","pip 不可用","调用到了不同版本"],"tips":"Windows 可尝试 py --version，macOS/Linux 可尝试 python3 --version。以本机实际安装为准。"},
+    {"title":"运行第一行代码","criteria":"启动 Python 解释器，输入 print('跟上了')，能看到输出。","link":"https://docs.python.org/3/tutorial/interpreter.html","reasons":["找不到解释器","输入后有语法错误"],"tips":"注意使用英文引号；运行成功后退出解释器。"}
+  ]
+}
