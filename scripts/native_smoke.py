@@ -1,3 +1,4 @@
+from contextlib import closing
 """Fresh native install, real HTTP/SSE, restart and backup/restore smoke test."""
 import argparse,json,os,pathlib,socket,sqlite3,subprocess,sys,tempfile,time,urllib.request
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -39,7 +40,7 @@ def main(output):
         try:assert call(base,token=host)['steps'][0]['counts']['done']==1
         finally:stop(p)
         backup=tmp/'backup.sqlite3'
-        with sqlite3.connect(database) as src,sqlite3.connect(backup) as dest:src.backup(dest)
+        with closing(sqlite3.connect(database)) as src,closing(sqlite3.connect(backup)) as dest:src.backup(dest)
         env['DATABASE_PATH']=str(backup);p=start()
         try:
             assert call(base,token=host)['steps'][0]['counts']['done']==1
