@@ -125,6 +125,14 @@ class Workshop:
                     "SELECT id FROM people WHERE room=? AND left_at IS NULL", (code,)
                 )
             ]
+            excluded = {
+                x[0]
+                for x in c.execute(
+                    "SELECT person FROM skips WHERE step=? AND decision='approved'",
+                    (s["id"],),
+                )
+            }
+            people = [p for p in people if p not in excluded]
             states = dict(
                 c.execute("SELECT person,state FROM statuses WHERE step=?", (s["id"],))
             )
@@ -294,6 +302,10 @@ class Workshop:
         now = time.time()
         from checkpoint_features import apply as apply_feature, options
 
+        from progress_features import ACTIONS, apply as apply_progress
+
+        if action in ACTIONS:
+            return apply_progress(self, c, r, a, action, d)
         if action == "person.environment":
             return apply_feature(self, c, r, a, action, d)
         if action.startswith("room."):
@@ -462,6 +474,11 @@ class Workshop:
                 (s["id"], a["id"]),
             ).fetchone()
             self.check_version(d, old[0] if old else 0)
+            if c.execute(
+                "SELECT 1 FROM skips WHERE step=? AND person=? AND decision='approved'",
+                (s["id"], a["id"]),
+            ).fetchone():
+                fail("本步已排除参与，如需恢复请联系讲解者", 409)
             self.write_state(c, s["id"], a["id"], d["state"])
         elif action == "person.leave" or action == "person.remove":
             if action == "person.remove":
@@ -571,7 +588,7 @@ class Workshop:
             self.active(c, code, d.get("step"))
             title = text(d, "title", 120, True)
             old = c.execute(
-                "SELECT id FROM issues WHERE step=? AND title=? AND merged_into IS NULL",
+                "SELECT id FROM issues WHERE step=? AND title=? AND merged_into IS NULL AND kind='blocker'",
                 (d["step"], title),
             ).fetchone()
             iid = old[0] if old else uid()
@@ -621,14 +638,17 @@ class Workshop:
                             if (
                                 self.current(c, code)
                                 and self.current(c, code)["id"] == i["step"]
+                                and i["kind"] == "blocker"
                             ):
-                                self.write_state(c, i["step"], a["id"], "stuck")
+                                if i["kind"] == "blocker":
+                                    self.write_state(c, i["step"], a["id"], "stuck")
                         elif (
                             self.current(c, code)
                             and self.current(c, code)["id"] == i["step"]
+                            and i["kind"] == "blocker"
                         ):
                             remaining = c.execute(
-                                "SELECT count(*) FROM votes JOIN issues ON issues.id=votes.issue WHERE issues.step=? AND votes.person=? AND votes.active=1 AND issues.merged_into IS NULL",
+                                "SELECT count(*) FROM votes JOIN issues ON issues.id=votes.issue WHERE issues.step=? AND votes.person=? AND votes.active=1 AND issues.merged_into IS NULL AND issues.kind='blocker'",
                                 (i["step"], a["id"]),
                             ).fetchone()[0]
                             status = c.execute(
@@ -640,10 +660,15 @@ class Workshop:
             else:
                 self.permit(a, "host", "helper")
                 if action == "issue.answer":
+                    from checkpoint_features import PLATFORMS
+
+                    environment = d.get("environment", "unspecified")
+                    if environment not in PLATFORMS:
+                        fail("回答适用环境无效")
                     body = text(d, "body", 2000, True)
                     url = link(d)
                     c.execute(
-                        "INSERT INTO answers VALUES(?,?,?,?,?,?,?)",
+                        "INSERT INTO answers(id,issue,body,link,public,created,author) VALUES(?,?,?,?,?,?,?)",
                         (
                             uid(),
                             iid,
@@ -657,6 +682,10 @@ class Workshop:
                     c.execute(
                         "UPDATE issues SET stage='answered',resolved=1,version=version+1 WHERE id=?",
                         (iid,),
+                    )
+                    c.execute(
+                        "UPDATE answers SET environment=? WHERE rowid=last_insert_rowid()",
+                        (environment,),
                     )
                 elif action == "issue.resolve":
                     c.execute(
@@ -697,7 +726,11 @@ class Workshop:
                 elif action == "issue.merge":
                     self.permit(a, "host")
                     target = self.issue(c, code, d.get("target"))
-                    if target["step"] != i["step"] or target["id"] == iid:
+                    if (
+                        target["step"] != i["step"]
+                        or target["id"] == iid
+                        or target["kind"] != i["kind"]
+                    ):
                         fail("只能合并同一步骤的不同卡点")
                     for v in c.execute(
                         "SELECT * FROM votes WHERE issue=?", (iid,)
@@ -743,7 +776,8 @@ class Workshop:
             "UPDATE issues SET stage='open',resolved=0,version=version+1 WHERE id=?",
             (iid,),
         )
-        self.write_state(c, i["step"], a["id"], "stuck")
+        if i["kind"] == "blocker":
+            self.write_state(c, i["step"], a["id"], "stuck")
 
     def base(self, c, code):
         r = dict(self.room(c, code))
@@ -777,7 +811,18 @@ class Workshop:
                         "SELECT * FROM statuses WHERE step=?", (s["id"],)
                     )
                 }
-                cohort = [p for p in people if p["left_at"] is None]
+                excluded = {
+                    x[0]
+                    for x in c.execute(
+                        "SELECT person FROM skips WHERE step=? AND decision='approved'",
+                        (s["id"],),
+                    )
+                }
+                cohort = [
+                    p
+                    for p in people
+                    if p["left_at"] is None and p["id"] not in excluded
+                ]
                 frozen = json.loads(s["frozen"]) if s["frozen"] else None
                 s["total"] = frozen["total"] if frozen else len(cohort)
                 s["counts"] = (
@@ -807,7 +852,7 @@ class Workshop:
                     i["answers"] = [
                         dict(x)
                         for x in c.execute(
-                            "SELECT id,body,link,public,created,author FROM answers WHERE issue=? ORDER BY created",
+                            "SELECT id,body,link,public,created,author,environment FROM answers WHERE issue=? ORDER BY created",
                             (i["id"],),
                         )
                     ]
@@ -986,4 +1031,7 @@ class Workshop:
                         if x["person"] == a["id"]
                     ]
                 )
+            from progress_features import enrich
+
+            enrich(self, c, code, a, result)
             return result

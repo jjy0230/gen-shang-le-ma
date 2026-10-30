@@ -14,9 +14,9 @@ class Database:
         if Path(path).exists():
             with sqlite3.connect(path) as source:
                 version = source.execute("PRAGMA user_version").fetchone()[0]
-                if version < 4:
+                if version < 5:
                     backup = str(path) + (
-                        ".pre-v3.bak" if version < 3 else ".pre-v4.bak"
+                        ".pre-v3.bak" if version < 3 else f".pre-v{version + 1}.bak"
                     )
                     if not Path(backup).exists():
                         with sqlite3.connect(backup) as target:
@@ -34,6 +34,10 @@ class Database:
             CREATE TABLE IF NOT EXISTS answers(id TEXT PRIMARY KEY,issue TEXT REFERENCES issues(id) ON DELETE CASCADE,body TEXT,link TEXT,public INTEGER,created REAL,author TEXT);
             CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,room TEXT REFERENCES rooms(code) ON DELETE CASCADE,kind TEXT,entity TEXT,actor TEXT,created REAL,detail TEXT);
             CREATE TABLE IF NOT EXISTS requests(room TEXT REFERENCES rooms(code) ON DELETE CASCADE,actor TEXT,key TEXT,fingerprint TEXT,result TEXT,PRIMARY KEY(room,actor,key));
+            CREATE TABLE IF NOT EXISTS corrections(id TEXT PRIMARY KEY,step TEXT REFERENCES steps(id) ON DELETE CASCADE,number INTEGER,previous TEXT,current TEXT,note TEXT,created REAL,UNIQUE(step,number));
+            CREATE TABLE IF NOT EXISTS acknowledgements(room TEXT REFERENCES rooms(code) ON DELETE CASCADE,kind TEXT,entity TEXT,person TEXT REFERENCES people(id) ON DELETE CASCADE,created REAL,PRIMARY KEY(kind,entity,person));
+            CREATE TABLE IF NOT EXISTS skips(step TEXT REFERENCES steps(id) ON DELETE CASCADE,person TEXT REFERENCES people(id) ON DELETE CASCADE,reason TEXT,decision TEXT,version INTEGER DEFAULT 1,created REAL,decided REAL,PRIMARY KEY(step,person));
+            CREATE TABLE IF NOT EXISTS pulses(id TEXT PRIMARY KEY,step TEXT REFERENCES steps(id) ON DELETE CASCADE,cohort TEXT,created REAL);
             CREATE TABLE IF NOT EXISTS tails(step TEXT REFERENCES steps(id) ON DELETE CASCADE,person TEXT REFERENCES people(id) ON DELETE CASCADE,recovered INTEGER DEFAULT 0,updated REAL,PRIMARY KEY(step,person));
             """)
             fields = {
@@ -48,6 +52,7 @@ class Database:
                     "left_at": "REAL",
                     "seat": "TEXT DEFAULT ''",
                     "environment": "TEXT DEFAULT 'unspecified'",
+                    "reminders": "INTEGER DEFAULT 1",
                 },
                 "steps": {
                     "criteria": "TEXT DEFAULT ''",
@@ -61,7 +66,9 @@ class Database:
                     "frozen": "TEXT",
                 },
                 "statuses": {"version": "INTEGER DEFAULT 1"},
+                "answers": {"environment": "TEXT DEFAULT 'unspecified'"},
                 "issues": {
+                    "kind": "TEXT DEFAULT 'blocker'",
                     "stage": "TEXT DEFAULT 'open'",
                     "assignee": "TEXT DEFAULT ''",
                     "merged_into": "TEXT",
@@ -69,6 +76,7 @@ class Database:
                     "version": "INTEGER DEFAULT 1",
                 },
                 "votes": {
+                    "details": "TEXT DEFAULT '{}'",
                     "active": "INTEGER DEFAULT 1",
                     "updated": "REAL DEFAULT 0",
                     "version": "INTEGER DEFAULT 1",
@@ -121,7 +129,7 @@ class Database:
                 )
                 c.execute("PRAGMA user_version=3")
 
-            c.execute("PRAGMA user_version=4")
+            c.execute("PRAGMA user_version=5")
 
     @contextmanager
     def connect(self, write=False):

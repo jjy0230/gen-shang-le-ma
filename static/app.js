@@ -255,7 +255,7 @@ function taskCard(s) {
 function answerCard(a) {
   return `<div class="answer"><span class="eyebrow">处理办法 ${a.public ? "· 可投屏" : ""}</span><p>${esc(a.body)}</p>${helpLink(a.link)}${state?.host ? button("存为步骤经验", "save-tip", a.id) : ""}</div>`;
 }
-function issueCard(i, staff) {
+function issueCardBase(i, staff) {
   let controls = "";
   if (staff && !state.closed) {
     const roles = (state.roles || []).filter(
@@ -278,9 +278,9 @@ function participantView() {
     ? taskCard(s)
     : `<div class="panel dark"><h2>${state.closed ? "本次带练已结束" : "等待讲解者发布步骤"}</h2><p>页面会自动同步。</p></div>`;
   html = environmentWidget() + html;
-  if (s) html += checkpointExtras(s);
   if (s && !old && !state.closed)
     html += `<section class="participant-actions"><div class="status-buttons">${["working", "done", "stuck"].map((k) => `<button data-action="state" data-id="${k}" data-needs-connection aria-pressed="${s.mine === k}" class="${s.mine === k ? "selected" : ""}">${k === "working" ? "◷" : k === "done" ? "✓" : "!"} ${labels[k]}</button>`).join("")}</div><p class="feedback-line" role="status">你当前：<b>${labels[s.mine]}</b> · ${connected ? "服务端已同步" : "等待重新同步"}</p></section>`;
+  if (s) html += checkpointExtras(s);
   const tails = (state.tails || []).filter((t) => !t.recovered);
   if (tails.length)
     html += `<section class="panel"><h2>前序步骤待确认</h2>${tails.map((t) => `<div class="issue"><p>${esc(t.title)}</p>${button("已能继续跟上", "catchup", t.step)}</div>`).join("")}<small>仅记录恢复，不改变已归档的完成统计。具体卡点仍需分别确认解决。</small></section>`;
@@ -460,6 +460,7 @@ function advanceWarning() {
   );
 }
 function bind() {
+  bindProgressForms();
   bindForm("#environment-form", async f=>command("person.environment",{environment:f.get("environment")}));
   document.querySelectorAll("[data-page]").forEach(
     (b) =>
@@ -557,7 +558,7 @@ function bind() {
       }
     };
 }
-async function act(action, id) {
+async function actBase(action, id) {
   const i = allIssues().find((x) => x.id === id),
     s = current();
   switch (action) {
@@ -751,7 +752,7 @@ function openAnswer(i) {
   $("#edit-dialog")?.remove();
   const d = document.createElement("dialog");
   d.id = "edit-dialog";
-  d.innerHTML = `<h2>发布处理办法</h2><p>${esc(i.title)}</p><form id="answer-form"><label for="answer-body">处理说明</label><textarea id="answer-body" name="body" required maxlength="2000" placeholder="说明操作及成功标准"></textarea><label for="answer-link">帮助链接（可选）</label><input id="answer-link" name="link" type="url" maxlength="1000"><label class="checkbox"><input type="checkbox" name="public"> 同时公开到匿名投屏（请确认不含个人信息）</label><button type="submit">发布给参与者</button></form>${button("取消", "dismiss")}`;
+  d.innerHTML = `<h2>发布处理办法</h2><p>${esc(i.title)}</p><form id="answer-form"><label for="answer-body">处理说明</label><textarea id="answer-body" name="body" required maxlength="2000" placeholder="说明操作及成功标准"></textarea><label for="answer-link">帮助链接（可选）</label><input id="answer-link" name="link" type="url" maxlength="1000"><label for="answer-environment">适用环境（未选择表示通用）</label>${platformSelect("answer-environment","environment")}<label class="checkbox"><input type="checkbox" name="public"> 同时公开到匿名投屏（请确认不含个人信息）</label><button type="submit">发布给参与者</button></form>${button("取消", "dismiss")}`;
   document.body.append(d);
   d.showModal();
   $("[data-action=dismiss]", d).onclick = () => d.close();
@@ -759,6 +760,7 @@ function openAnswer(i) {
     await command("issue.answer", {
       id: i.id,
       body: f.get("body"),
+      environment:f.get("environment")||"unspecified",
       link: f.get("link"),
       public: f.get("public") === "on",
     });
