@@ -1,0 +1,22 @@
+name: CI
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -r requirements-dev.txt -c requirements-lock.txt
+      - run: pytest -q
+      - run: node --check static/app.js && node --check static/checkpoint-ui.js && node --check static/progress-ui.js
+      - name: Native server health
+        run: |
+          python -m uvicorn app:app --host 127.0.0.1 --port 8000 &
+          python -c "import time, urllib.request; time.sleep(3); assert urllib.request.urlopen('http://127.0.0.1:8000/health').status == 200"
