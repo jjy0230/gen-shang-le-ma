@@ -14,8 +14,10 @@ class Database:
         if Path(path).exists():
             with sqlite3.connect(path) as source:
                 version = source.execute("PRAGMA user_version").fetchone()[0]
-                if version < 3:
-                    backup = str(path) + ".pre-v3.bak"
+                if version < 4:
+                    backup = str(path) + (
+                        ".pre-v3.bak" if version < 3 else ".pre-v4.bak"
+                    )
                     if not Path(backup).exists():
                         with sqlite3.connect(backup) as target:
                             source.backup(target)
@@ -45,12 +47,14 @@ class Database:
                     "joined": "REAL DEFAULT 0",
                     "left_at": "REAL",
                     "seat": "TEXT DEFAULT ''",
+                    "environment": "TEXT DEFAULT 'unspecified'",
                 },
                 "steps": {
                     "criteria": "TEXT DEFAULT ''",
                     "link": "TEXT DEFAULT ''",
                     "reasons": "TEXT DEFAULT '[]'",
                     "tips": "TEXT DEFAULT ''",
+                    "options": "TEXT DEFAULT '{}'",
                     "phase": "TEXT DEFAULT 'active'",
                     "position": "INTEGER DEFAULT 0",
                     "opened": "REAL",
@@ -116,6 +120,8 @@ class Database:
                     "UPDATE issues SET stage=CASE WHEN resolved=1 THEN 'answered' ELSE 'open' END"
                 )
                 c.execute("PRAGMA user_version=3")
+
+            c.execute("PRAGMA user_version=4")
 
     @contextmanager
     def connect(self, write=False):

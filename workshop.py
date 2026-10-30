@@ -231,6 +231,7 @@ class Workshop:
                     "link": r["link"],
                     "reasons": json.loads(r["reasons"]),
                     "tips": r["tips"],
+                    "options": json.loads(r["options"]),
                 }
                 for r in c.execute(
                     "SELECT * FROM steps WHERE room=? ORDER BY position", (code,)
@@ -291,6 +292,10 @@ class Workshop:
     def apply(self, c, r, a, action, d):
         code = r["code"]
         now = time.time()
+        from checkpoint_features import apply as apply_feature, options
+
+        if action == "person.environment":
+            return apply_feature(self, c, r, a, action, d)
         if action.startswith("room."):
             self.permit(a, "host")
             if action == "room.settings":
@@ -321,7 +326,7 @@ class Workshop:
                 )
                 for n, s in enumerate(self.template(c, code)["steps"]):
                     c.execute(
-                        "INSERT INTO steps(id,room,title,created,criteria,link,reasons,tips,phase,position) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                        "INSERT INTO steps(id,room,title,created,criteria,link,reasons,tips,phase,position,options) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                         (
                             uid(),
                             newcode,
@@ -335,6 +340,7 @@ class Workshop:
                             ],
                             "draft",
                             n,
+                            json.dumps(options(s)),
                         ),
                     )
                 return {"code": newcode, "token": token}
@@ -375,6 +381,10 @@ class Workshop:
                 )
                 c.execute(
                     "UPDATE steps SET tips=? WHERE id=?", (text(d, "tips", 2000), sid)
+                )
+                c.execute(
+                    "UPDATE steps SET options=? WHERE id=?",
+                    (json.dumps(options(d)), sid),
                 )
                 return {"id": sid}
             if action == "step.reorder":
@@ -433,6 +443,10 @@ class Workshop:
                     c.execute(
                         "UPDATE steps SET tips=? WHERE id=?",
                         (text(d, "tips", 2000), s["id"]),
+                    )
+                    c.execute(
+                        "UPDATE steps SET options=? WHERE id=?",
+                        (json.dumps(options(d)), s["id"]),
                     )
                 elif action == "step.delete":
                     c.execute("DELETE FROM steps WHERE id=?", (s["id"],))
@@ -547,6 +561,10 @@ class Workshop:
                         n + idx,
                         text(rows[idx], "tips", 2000),
                     ),
+                )
+                c.execute(
+                    "UPDATE steps SET options=? WHERE id=?",
+                    (json.dumps(options(rows[idx])), sid),
                 )
         elif action == "issue.add":
             self.permit(a, "person")
@@ -737,7 +755,7 @@ class Workshop:
             people = [
                 dict(x)
                 for x in c.execute(
-                    "SELECT id,name,seat,seen,joined,left_at FROM people WHERE room=?",
+                    "SELECT id,name,seat,seen,joined,left_at,environment FROM people WHERE room=?",
                     (code,),
                 )
             ]
@@ -841,6 +859,7 @@ class Workshop:
                         "ended",
                     )
                 }
+                s["options"] = json.loads(raw["options"])
                 mine = raw["states"].get(a["id"], {})
                 s.update(
                     mine=mine.get("state", "waiting")
@@ -936,7 +955,16 @@ class Workshop:
                     "id": a["id"],
                     "seat": next((p["seat"] for p in active if p["id"] == a["id"]), ""),
                 }
+            if not screen:
+                result["me"]["environment"] = next(
+                    (p["environment"] for p in active if p["id"] == a["id"]),
+                    "unspecified",
+                )
             if staff:
+                result["environments"] = {
+                    k: sum(p["environment"] == k for p in active)
+                    for k in ("unspecified", "windows", "macos", "linux", "other")
+                }
                 result["roles"] = b["roles"]
                 result["departed"] = [
                     p for p in b["people"] if p["left_at"] is not None

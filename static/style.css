@@ -744,3 +744,4 @@ dialog textarea {
     font-size: 25px;
   }
 }
+.environment-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:15px;font-size:13px}.environment-row label{margin:0}.environment-row select{padding:8px}.environment-row button{padding:8px 12px}.prewrap{white-space:pre-wrap;overflow-wrap:anywhere}

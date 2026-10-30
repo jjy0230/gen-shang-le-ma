@@ -277,6 +277,8 @@ function participantView() {
   let html = s
     ? taskCard(s)
     : `<div class="panel dark"><h2>${state.closed ? "本次带练已结束" : "等待讲解者发布步骤"}</h2><p>页面会自动同步。</p></div>`;
+  html = environmentWidget() + html;
+  if (s) html += checkpointExtras(s);
   if (s && !old && !state.closed)
     html += `<section class="participant-actions"><div class="status-buttons">${["working", "done", "stuck"].map((k) => `<button data-action="state" data-id="${k}" data-needs-connection aria-pressed="${s.mine === k}" class="${s.mine === k ? "selected" : ""}">${k === "working" ? "◷" : k === "done" ? "✓" : "!"} ${labels[k]}</button>`).join("")}</div><p class="feedback-line" role="status">你当前：<b>${labels[s.mine]}</b> · ${connected ? "服务端已同步" : "等待重新同步"}</p></section>`;
   const tails = (state.tails || []).filter((t) => !t.recovered);
@@ -337,7 +339,7 @@ function staffLive() {
           )
           .join("")}<small>由参与者主动确认已能继续跟上。</small></section>`
       : ""
-  }${roster(s)}</div><aside>${state.host && !state.closed ? `<section class="panel"><h3>推进带练</h3>${next ? `<p>${esc(next.title)}</p>${button("发布下一步 →", "start-step", next.id, "primary")}` : empty("没有待发布步骤")}<details><summary>临场直接发布</summary>${stepForm("quick-step", "发布新步骤 →")}</details><div class="actions">${button("结束本次带练", "close")}</div></section>` : ""}<section class="panel"><h3>节奏与提醒</h3><div class="timer" id="countdown">${timerText()}</div>${state.host && !state.closed ? `<div class="actions">${button("2 分钟", "timer", "120")}${button("5 分钟", "timer", "300")}${button("10 分钟", "timer", "600")}${button("停止", "timer", "0")}</div>` : ""}${button("开启浏览器提醒", "notifications")}<small>默认关闭。计时结束不会自动推进。</small></section><section class="panel"><h3>历史检查点</h3><select id="history" aria-label="查看历史检查点"><option value="">跟随当前步骤</option>${state.steps
+  }${s?checkpointExtras(s):""}${roster(s)}</div><aside>${state.host && !state.closed ? `<section class="panel"><h3>推进带练</h3>${next ? `<p>${esc(next.title)}</p>${button("发布下一步 →", "start-step", next.id, "primary")}` : empty("没有待发布步骤")}<details><summary>临场直接发布</summary>${stepForm("quick-step", "发布新步骤 →")}</details><div class="actions">${button("结束本次带练", "close")}</div></section>` : ""}<section class="panel"><h3>节奏与提醒</h3><div class="timer" id="countdown">${timerText()}</div>${state.host && !state.closed ? `<div class="actions">${button("2 分钟", "timer", "120")}${button("5 分钟", "timer", "300")}${button("10 分钟", "timer", "600")}${button("停止", "timer", "0")}</div>` : ""}${button("开启浏览器提醒", "notifications")}<small>默认关闭。计时结束不会自动推进。</small></section><section class="panel"><h3>历史检查点</h3><select id="history" aria-label="查看历史检查点"><option value="">跟随当前步骤</option>${state.steps
     .filter((x) => x.phase !== "draft")
     .map(
       (x) =>
@@ -346,7 +348,7 @@ function staffLive() {
     .join("")}</select></section></aside></div>`;
 }
 function stepForm(id, submit = "保存待发布步骤", s = {}) {
-  return `<form id="${id}"><label for="${id}-title">步骤标题</label><input id="${id}-title" name="title" required maxlength="200" value="${esc(s.title || "")}"><label for="${id}-criteria">完成标准</label><textarea id="${id}-criteria" name="criteria" maxlength="1000" placeholder="例如：终端运行 python --version，看到版本号">${esc(s.criteria || "")}</textarea><label for="${id}-link">帮助链接（可选）</label><input id="${id}-link" name="link" type="url" maxlength="1000" value="${esc(s.link || "")}"><label for="${id}-reasons">常见卡点（每行一个，最多 12 条）</label><textarea id="${id}-reasons" name="reasons" maxlength="1452">${esc((s.reasons || []).join("\n"))}</textarea><label for="${id}-tips">带练提示 / 可复用的处理经验</label><textarea id="${id}-tips" name="tips" maxlength="2000">${esc(s.tips || "")}</textarea><button type="submit" data-needs-connection>${submit}</button></form>`;
+  return `<form id="${id}"><label for="${id}-title">步骤标题</label><input id="${id}-title" name="title" required maxlength="200" value="${esc(s.title || "")}"><label for="${id}-criteria">完成标准</label><textarea id="${id}-criteria" name="criteria" maxlength="1000" placeholder="例如：终端运行 python --version，看到版本号">${esc(s.criteria || "")}</textarea><label for="${id}-link">帮助链接（可选）</label><input id="${id}-link" name="link" type="url" maxlength="1000" value="${esc(s.link || "")}"><label for="${id}-reasons">常见卡点（每行一个，最多 12 条）</label><textarea id="${id}-reasons" name="reasons" maxlength="1452">${esc((s.reasons || []).join("\n"))}</textarea><label for="${id}-tips">带练提示 / 可复用的处理经验</label><textarea id="${id}-tips" name="tips" maxlength="2000">${esc(s.tips || "")}</textarea>${checkpointOptionsForm(id,s)}<button type="submit" data-needs-connection>${submit}</button></form>`;
 }
 function planning() {
   const edit = state.steps.find((s) => s.id === editing);
@@ -382,7 +384,7 @@ function render(preserve = true) {
   const saved = {};
   if (preserve)
     document
-      .querySelectorAll("input:not([type=file]),textarea")
+      .querySelectorAll("input:not([type=file]),textarea,select")
       .forEach((e) => (saved[e.id] = e.value));
   const opened = [...document.querySelectorAll("details[open]")].map(
       (e) => e.querySelector("summary")?.textContent,
@@ -440,6 +442,7 @@ function dataFromStep(f) {
     criteria: f.get("criteria"),
     link: f.get("link"),
     tips: f.get("tips"),
+    options: readCheckpointOptions(f),
     reasons: f
       .get("reasons")
       .split("\n")
@@ -457,6 +460,7 @@ function advanceWarning() {
   );
 }
 function bind() {
+  bindForm("#environment-form", async f=>command("person.environment",{environment:f.get("environment")}));
   document.querySelectorAll("[data-page]").forEach(
     (b) =>
       (b.onclick = () => {
