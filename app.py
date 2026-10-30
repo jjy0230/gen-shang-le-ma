@@ -38,7 +38,7 @@ with db() as c:
     """)
     if "joined" not in [x[1] for x in c.execute("PRAGMA table_info(people)")]:
         c.execute("ALTER TABLE people ADD COLUMN joined REAL DEFAULT 0")
-app = FastAPI(title="跟上了吗", version="1.0.0")
+app = FastAPI(title="跟上了吗", version="0.1.0")
 
 
 class RoomInput(BaseModel):
