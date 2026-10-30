@@ -66,3 +66,5 @@ node --check static/app.js
 [竞品调研、差异化与 10 人试用方案](docs/research.md)。本项目没有经过真实课堂验证，不宣称不可替代；不以自动推断代替参与者真实反馈。
 
 MIT License。
+
+下一版方向与验收条件见 [第二轮研究与实施规格](docs/next-version-research.md)。该文档是规划，未实现功能不属于当前版本。
