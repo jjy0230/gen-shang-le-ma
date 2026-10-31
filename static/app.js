@@ -280,9 +280,9 @@ function participantView() {
     ? taskCard(s)
     : `<div class="panel dark"><h2>${state.closed ? "本次带练已结束" : "等待讲解者发布步骤"}</h2><p>页面会自动同步。</p></div>`;
   html = environmentWidget() + html;
-  if (s && !old && !state.closed)
+  if (s && !old && !state.closed && !s.skips?.some(x=>x.decision==="approved"))
     html += `<section class="participant-actions"><div class="status-buttons">${["working", "done", "stuck"].map((k) => `<button data-action="state" data-id="${k}" data-needs-connection aria-pressed="${s.mine === k}" class="${s.mine === k ? "selected" : ""}">${k === "working" ? "◷" : k === "done" ? "✓" : "!"} ${labels[k]}</button>`).join("")}</div><p class="feedback-line" role="status">你当前：<b>${labels[s.mine]}</b> · ${connected ? "服务端已同步" : "等待重新同步"}</p></section>`;
-  if (s) html += checkpointExtras(s);
+  if (s) html += participantGuidance(s) + checkpointExtras(s);
   const tails = (state.tails || []).filter((t) => !t.recovered);
   if (tails.length)
     html += `<section class="panel"><h2>前序步骤待确认</h2>${tails.map((t) => `<div class="issue"><p>${esc(t.title)}</p>${button("已能继续跟上", "catchup", t.step)}</div>`).join("")}<small>仅记录恢复，不改变已归档的完成统计。具体卡点仍需分别确认解决。</small></section>`;
@@ -328,29 +328,15 @@ function roster(s) {
   }</div>${state.departed?.length ? `<details><summary>已离开 / 移除 ${state.departed.length} 人</summary>${state.departed.map((p) => `<p>${esc(p.name)} · ${esc(p.seat)}</p>`).join("")}</details>` : ""}</section>`;
 }
 function staffLive() {
-  const s = historyId ? state.steps.find((x) => x.id === historyId) : current(),
-    backlog = allIssues().filter((i) => i.old && i.affected > 0),
-    next = state.steps.find((x) => x.phase === "draft");
-  return `<div class="layout"><div>${s ? taskCard(s) + stats(s) : '<div class="panel dark"><h2>还没有开始带练</h2><p>编排步骤，或直接发布第一个检查点。</p></div>'}<div class="cohort-strip"><span>预计 <b>${state.expected || "未设置"}</b></span><span>有效加入 <b>${state.total}</b></span><span>累计加入 <b>${state.joined_total}</b></span>${state.missing ? `<span>尚差 <b>${state.missing}</b></span>` : ""}</div>${s ? `<div class="notice">${!s.total ? "等待参与者加入。" : s.counts.stuck ? "建议优先处理受阻问题。" : s.counts.waiting ? "还有人未反馈，先确认情况。" : s.counts.working ? "有人仍在操作，可以稍等。" : "当前参与范围已全部自报完成。"}${backlog.length ? ` 另有 ${backlog.length} 个前序问题。` : ""}</div><section class="panel"><h2>当前检查点的问题</h2>${s.issues.map((i) => issueCard({ ...i, old: s.phase === "frozen", stepTitle: s.title }, true)).join("") || empty("暂无卡点")}</section>` : ""}${backlog.length ? `<section class="panel"><h2>前序仍需协助</h2>${backlog.map((i) => issueCard(i, true)).join("")}</section>` : ""}${
-    (state.tails || []).some((t) => !t.recovered)
-      ? `<section class="panel"><h2>前序步骤跟进</h2>${state.tails
-          .filter((t) => !t.recovered)
-          .map(
-            (t) =>
-              `<div class="person"><span>${esc(t.name)}</span><span>${esc(t.title)}</span></div>`,
-          )
-          .join("")}<small>由参与者主动确认已能继续跟上。</small></section>`
-      : ""
-  }${s?checkpointExtras(s):""}${roster(s)}</div><aside>${state.host && !state.closed ? `<section class="panel"><h3>推进带练</h3>${next ? `<p>${esc(next.title)}</p>${button("发布下一步 →", "start-step", next.id, "primary")}` : empty("没有待发布步骤")}<details><summary>临场直接发布</summary>${stepForm("quick-step", "发布新步骤 →")}</details><div class="actions">${button("结束本次带练", "close")}</div></section>` : ""}<section class="panel"><h3>节奏与提醒</h3><div class="timer" id="countdown">${timerText()}</div>${state.host && !state.closed ? `<div class="actions">${button("2 分钟", "timer", "120")}${button("5 分钟", "timer", "300")}${button("10 分钟", "timer", "600")}${button("停止", "timer", "0")}</div>` : ""}${button("开启浏览器提醒", "notifications")}<small>默认关闭。计时结束不会自动推进。</small></section><section class="panel"><h3>历史检查点</h3><select id="history" aria-label="查看历史检查点"><option value="">跟随当前步骤</option>${state.steps
-    .filter((x) => x.phase !== "draft")
-    .map(
-      (x) =>
-        `<option value="${x.id}" ${historyId === x.id ? "selected" : ""}>${esc(x.title)}</option>`,
-    )
-    .join("")}</select></section></aside></div>`;
+  const s=historyId?state.steps.find(x=>x.id===historyId):current(),next=state.steps.find(x=>x.phase==='draft');
+  const open=allIssues().filter(issueNeedsAttention),groups={open:[],helping:[],waiting:[]};
+  for(const i of open){const key=i.answers.length?'waiting':i.assignee&&i.assignee!=='host'?'helping':'open';groups[key].push(i)}
+  const pending=(s?.skips||[]).filter(x=>x.decision==='pending').length;
+  const percent=s?.total?Math.round(s.counts.done/s.total*100):0;
+  return `<div class="live-bar"><div><small>当前检查点</small><strong>${esc(s?.title||'尚未开始')}</strong></div><span>${s?`${s.counts.done} / ${s.total} 人完成 · ${percent}%`:''}</span>${state.host&&next&&!state.closed?button('发布下一步 →','start-step',next.id,'primary'):''}</div><div class="layout"><div>${s?taskCard(s)+stats(s):'<div class="panel dark"><h2>开始一次带练</h2><p>在步骤与模板中编排，或直接发布一个检查点。</p></div>'}<div class="cohort-strip"><span>预计 ${state.expected||'未设置'}</span><span>有效加入 ${state.total}</span><span>累计加入 ${state.joined_total}</span>${s?`<span>本步范围 ${s.total}</span>`:''}</div><div class="notice">${!s?'先发布一个检查点。':!s.total?(state.total?'本步暂无需要操作的成员，请检查参与范围。':'等待参与者加入。'):s.counts.stuck?'有人受阻，请先处理共同问题。':s.counts.waiting?'还有人未反馈，先确认情况。':s.counts.working?'有人仍在操作，可以稍等。':'本步参与范围已全部自报完成。'}</div><nav class="triage-counts" aria-label="处理队列"><a href="#triage-open">待处理 <b>${groups.open.length}</b></a><a href="#triage-helping">协作处理中 <b>${groups.helping.length}</b></a><a href="#triage-waiting">等待确认 <b>${groups.waiting.length}</b></a></nav>${[['open','先处理这些问题'],['helping','协作处理中'],['waiting','等待参与者确认']].map(([key,label])=>`<section class="panel" id="triage-${key}"><h2>${label} <span class="pill">${groups[key].length}</span></h2>${groups[key].map(i=>issueCard(i,true)).join('')||empty('当前没有此类事项')}</section>`).join('')}<details class="panel"><summary>已处理的问题与完整记录</summary>${allIssues().filter(i=>!issueNeedsAttention(i)).map(i=>issueCard(i,true)).join('')||empty('暂无已处理问题')}</details>${s?`<details class="panel" ${pending?'open':''}><summary>更正、进度确认与参与范围${pending?' · '+pending+' 项申请待处理':''}</summary>${checkpointExtras(s)}</details>`:''}<details class="panel"><summary>查看人员、座位及离线情况</summary>${roster(s)}</details></div><aside>${state.host&&!state.closed?`<section class="panel"><h3>推进带练</h3>${next?`<p>下一步：${esc(next.title)}</p>${button('发布下一步 →','start-step',next.id,'primary')}`:empty('暂无待发布步骤')}<details ${!s&&!next?'open':''}><summary>临场直接发布</summary>${stepForm('quick-step','发布新步骤 →')}</details><div class="actions">${button('结束带练','close')}</div></section>`:''}<details class="panel"><summary>计时、提醒与历史</summary><div class="timer" id="countdown">${timerText()}</div>${state.host&&!state.closed?`<div class="actions">${button('2 分钟','timer','120')}${button('5 分钟','timer','300')}${button('停止','timer','0')}</div>`:''}${button('开启浏览器提醒','notifications')}<label for="history">历史检查点</label><select id="history"><option value="">跟随当前步骤</option>${state.steps.filter(x=>x.phase!=='draft').map(x=>`<option value="${x.id}" ${historyId===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select></details></aside></div>`;
 }
 function stepForm(id, submit = "保存待发布步骤", s = {}) {
-  return `<form id="${id}"><label for="${id}-title">步骤标题</label><input id="${id}-title" name="title" required maxlength="200" value="${esc(s.title || "")}"><label for="${id}-criteria">完成标准</label><textarea id="${id}-criteria" name="criteria" maxlength="1000" placeholder="例如：终端运行 python --version，看到版本号">${esc(s.criteria || "")}</textarea><label for="${id}-link">帮助链接（可选）</label><input id="${id}-link" name="link" type="url" maxlength="1000" value="${esc(s.link || "")}"><label for="${id}-reasons">常见卡点（每行一个，最多 12 条）</label><textarea id="${id}-reasons" name="reasons" maxlength="1452">${esc((s.reasons || []).join("\n"))}</textarea><label for="${id}-tips">带练提示 / 可复用的处理经验</label><textarea id="${id}-tips" name="tips" maxlength="2000">${esc(s.tips || "")}</textarea>${checkpointOptionsForm(id,s)}<button type="submit" data-needs-connection>${submit}</button></form>`;
+  return `<form id="${id}"><label for="${id}-title">步骤标题</label><input id="${id}-title" name="title" required maxlength="200" value="${esc(s.title || "")}"><label for="${id}-criteria">完成标准</label><textarea id="${id}-criteria" name="criteria" maxlength="1000" placeholder="例如：终端运行 python --version，看到版本号">${esc(s.criteria || "")}</textarea><details><summary>帮助、常见卡点与高级配置（可选）</summary><label for="${id}-link">帮助链接（可选）</label><input id="${id}-link" name="link" type="url" maxlength="1000" value="${esc(s.link || "")}"><label for="${id}-reasons">常见卡点（每行一个，最多 12 条）</label><textarea id="${id}-reasons" name="reasons" maxlength="1452">${esc((s.reasons || []).join("\n"))}</textarea><label for="${id}-tips">带练提示 / 可复用的处理经验</label><textarea id="${id}-tips" name="tips" maxlength="2000">${esc(s.tips || "")}</textarea>${checkpointOptionsForm(id,s)}</details><button type="submit" data-needs-connection>${submit}</button></form>`;
 }
 function planning() {
   const edit = state.steps.find((s) => s.id === editing);
@@ -402,7 +388,7 @@ function render(preserve = true) {
     summary: summaryView,
     settings,
   };
-  app.innerHTML = `${demoMode?'<div class="notice">演示环境 · 模拟数据 · 24 小时保留 '+button('打开演示参与端','demo-person')+button('重置本演示房间','demo-reset')+'</div>':''}<div class="room-heading"><div><span class="eyebrow">${{ host: "讲解者控制台", helper: "助教工作台", person: "参与者", screen: "匿名投屏" }[state.role]} / ${esc(code)}</span><h1>${esc(state.title)}</h1></div><span class="pill">${state.closed ? "已结束 · 记录只读" : "带练进行中"}</span></div>${state.announcement ? `<div class="announcement" role="status">公告：${esc(state.announcement)}</div>` : ""}${state.timer_end && state.role === "person" ? `<p class="muted">本轮剩余 <span id="countdown">${timerText()}</span></p>` : ""}${
+  app.innerHTML = `${demoMode?'<div class="notice">演示环境 · 模拟数据 · 24 小时保留 '+(state.host?button('打开演示参与端','demo-person')+button('重置本演示房间','demo-reset'):'')+'</div>':''}<div class="room-heading"><div><span class="eyebrow">${{ host: "讲解者控制台", helper: "助教工作台", person: "参与者", screen: "匿名投屏" }[state.role]} / ${esc(code)}</span><h1>${esc(state.title)}</h1></div><span class="pill">${state.closed ? "已结束 · 记录只读" : "带练进行中"}</span></div>${state.announcement ? `<div class="announcement" role="status">公告：${esc(state.announcement)}</div>` : ""}${state.timer_end && state.role === "person" ? `<p class="muted">本轮剩余 <span id="countdown">${timerText()}</span></p>` : ""}${
     state.host
       ? `<nav class="tabs" aria-label="房间导航">${[
           ["live", "现场进度"],

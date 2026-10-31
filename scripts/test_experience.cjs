@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+const context={state:{closed:false,me:{id:'host'}},connected:true,allIssues:()=>[],esc:x=>String(x),button:()=>'',answerCard:()=>''};vm.createContext(context);vm.runInContext(fs.readFileSync('static/experience-ui.js','utf8'),context);
+assert.equal(context.issueNeedsAttention({kind:'clarification',stage:'answered',answers:[{}],acknowledged:2,count:2}),false);
+assert.equal(context.issueNeedsAttention({kind:'clarification',stage:'answered',answers:[{}],acknowledged:1,count:2}),true);
+assert.equal(context.issueNeedsAttention({kind:'blocker',stage:'answered',affected:1}),true);
+assert.equal(context.issueNeedsAttention({kind:'blocker',stage:'closed',affected:1}),false);
+const step={phase:'active',mine:'done',skips:[],corrections:[]};
+assert.match(context.nextParticipantAction(step),/已经完成/);
+assert.match(context.nextParticipantAction({...step,skips:[{decision:'approved'}]}),/无需提交/);
+assert.match(context.nextParticipantAction({...step,corrections:[{mine:false}]}),/先阅读/);
+context.connected=false;assert.match(context.nextParticipantAction(step),/连接恢复/);context.connected=true;
+context.allIssues=()=>[{kind:'blocker',mine:true,my_active:true,answers:[{}]}];assert.match(context.nextParticipantAction(step),/处理办法/);
+const html=context.clarificationCard({title:'解释',answers:[],count:2,acknowledged:0},true);assert.ok(!html.includes('仍受影响')&&!html.includes('人恢复'));
+console.log('Presentation state invariants passed');

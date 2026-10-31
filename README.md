@@ -4,6 +4,8 @@
 
 ![新版实际复盘截图](docs/images/v030-report.png)
 
+当前阶段：[现场使用减负 H01–H08](docs/roadmap-ux.md)。
+
 后续目标、优先级与验收标准见 [项目目标清单](docs/roadmap.md)。未勾选项目尚未完成。
 
 ## 本次新增
