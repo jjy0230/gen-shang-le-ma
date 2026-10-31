@@ -174,6 +174,8 @@ async def run(seconds, output):
                 Path(output).parent.mkdir(parents=True, exist_ok=True)
                 Path(output).write_text(json.dumps(result, indent=2), encoding="utf-8")
                 print(json.dumps(result), flush=True)
+                if errors or not frames:
+                    raise RuntimeError("Soak test reported errors or no SSE frames; see output JSON")
         finally:
             server.terminate()
             server.wait(timeout=20)

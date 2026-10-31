@@ -136,9 +136,12 @@ def apply(service, c, r, a, action, d):
             "SELECT 1 FROM votes WHERE issue=? AND person=?", (i["id"], a["id"])
         ).fetchone():
             fail("请先加入此澄清", 403)
+        environment = c.execute(
+            "SELECT environment FROM people WHERE id=?", (a["id"],)
+        ).fetchone()[0]
         answer = c.execute(
-            "SELECT id FROM answers WHERE issue=? ORDER BY created DESC,rowid DESC LIMIT 1",
-            (i["id"],),
+            "SELECT id FROM answers WHERE issue=? AND environment IN ('unspecified',?) ORDER BY created DESC,rowid DESC LIMIT 1",
+            (i["id"], environment),
         ).fetchone()
         if not answer or d.get("answer") != answer[0]:
             fail("请确认最新澄清答复", 409)

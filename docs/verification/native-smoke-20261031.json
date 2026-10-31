@@ -1,0 +1,12 @@
+{
+  "fresh_venv_install": true,
+  "http_join_status": true,
+  "sse_observed_done": true,
+  "restart_persisted": true,
+  "backup_restore_persisted": true,
+  "roles_preserved": true,
+  "invalid_token_rejected": true,
+  "platform": "win32",
+  "python": "3.10.0",
+  "limits": "Loopback synthetic client. Physical phone and public-network access not tested."
+}

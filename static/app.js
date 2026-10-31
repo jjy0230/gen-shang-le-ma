@@ -10,6 +10,7 @@ if (code && hash.has("access")) {
   localStorage.setItem(`${code}:${role}`, token);
   history.replaceState(null, "", location.pathname + location.search);
 }
+let demoMode=false;
 let state,
   page = "live",
   historyId = "",
@@ -195,7 +196,8 @@ function showShare(title, value) {
   $("[data-action=dismiss]", d).onclick = () => d.close();
 }
 function landing() {
-  app.innerHTML = `<section class="hero"><div><span class="eyebrow">WORKSHOP PULSE / v0.3</span><h1>一起往前，<br>也看见掉队的人。</h1><p class="muted">每步报进度，共同问题一起处理。发布办法后，让参与者亲自确认恢复。</p><span class="pill">免注册 · 可自部署 · 助教协作</span></div><div class="panel dark lead-demo"><span class="eyebrow muted">工作方式示意</span><h2>安装完成，并打开首页</h2><div class="demo-row"><span>全班当前步骤</span><strong>03</strong></div><div class="demo-row"><span>下载失败 · 5 人遇到</span><strong>3 人恢复</strong></div><p class="muted">全班进入下一步，仍受阻的 2 人继续留在跟进列表。</p></div></section><section class="forms"><div class="panel"><h2>创建一次带练</h2><form id="create"><label for="title">主题</label><input id="title" name="title" required maxlength="80" placeholder="例如：Python 环境安装"><label for="expected">预计人数（可选）</label><input id="expected" name="expected" type="number" min="0" max="200" value="0"><button type="submit">创建房间 →</button></form></div><div class="panel"><h2>加入带练</h2><form id="enter"><label for="room-code">6 位房间码</label><input id="room-code" name="code" required minlength="6" maxlength="6"><button type="submit" class="secondary">进入参与页 →</button></form><details><summary>恢复主持 / 助教 / 参与身份</summary><form id="recover"><label for="recover-code">房间码</label><input id="recover-code" name="code" required maxlength="6"><label for="recovery-token">恢复凭证</label><input id="recovery-token" name="token" type="password" required autocomplete="off"><button type="submit" class="secondary">验证并恢复</button></form></details></div></section>`;
+  app.innerHTML = `<section class="hero"><div><span class="eyebrow">WORKSHOP PULSE / v0.4</span><h1>一起往前，<br>也看见掉队的人。</h1><p class="muted">每步报进度，共同问题一起处理。发布办法后，让参与者亲自确认恢复。</p><span class="pill">免注册 · 可自部署 · 助教协作</span></div><div class="panel dark lead-demo"><span class="eyebrow muted">工作方式示意</span><h2>安装完成，并打开首页</h2><div class="demo-row"><span>全班当前步骤</span><strong>03</strong></div><div class="demo-row"><span>下载失败 · 5 人遇到</span><strong>3 人恢复</strong></div><p class="muted">全班进入下一步，仍受阻的 2 人继续留在跟进列表。</p></div></section><section class="forms"><div class="panel"><h2>创建一次带练</h2><form id="create"><label for="title">主题</label><input id="title" name="title" required maxlength="80" placeholder="例如：Python 环境安装"><label for="expected">预计人数（可选）</label><input id="expected" name="expected" type="number" min="0" max="200" value="0"><button type="submit">创建房间 →</button></form></div><div class="panel"><h2>加入带练</h2><form id="enter"><label for="room-code">6 位房间码</label><input id="room-code" name="code" required minlength="6" maxlength="6"><button type="submit" class="secondary">进入参与页 →</button></form><details><summary>恢复主持 / 助教 / 参与身份</summary><form id="recover"><label for="recover-code">房间码</label><input id="recover-code" name="code" required maxlength="6"><label for="recovery-token">恢复凭证</label><input id="recovery-token" name="token" type="password" required autocomplete="off"><button type="submit" class="secondary">验证并恢复</button></form></details></div></section>`;
+  if(demoMode){app.insertAdjacentHTML('afterbegin','<section class="notice"><b>独立演示环境</b><p>下面的参与者和反馈为模拟数据，演示房间保留 24 小时，不要用于真实课程。</p>'+button('创建示范房间','demo-create')+'</section>');$('[data-action=demo-create]').onclick=async()=>{try{await launchDemo()}catch(e){toast(e.message)}}}
   bindForm("#create", async (f) => {
     const r = await request("", {
       title: f.get("title"),
@@ -400,7 +402,7 @@ function render(preserve = true) {
     summary: summaryView,
     settings,
   };
-  app.innerHTML = `<div class="room-heading"><div><span class="eyebrow">${{ host: "讲解者控制台", helper: "助教工作台", person: "参与者", screen: "匿名投屏" }[state.role]} / ${esc(code)}</span><h1>${esc(state.title)}</h1></div><span class="pill">${state.closed ? "已结束 · 记录只读" : "带练进行中"}</span></div>${state.announcement ? `<div class="announcement" role="status">公告：${esc(state.announcement)}</div>` : ""}${state.timer_end && state.role === "person" ? `<p class="muted">本轮剩余 <span id="countdown">${timerText()}</span></p>` : ""}${
+  app.innerHTML = `${demoMode?'<div class="notice">演示环境 · 模拟数据 · 24 小时保留 '+button('打开演示参与端','demo-person')+button('重置本演示房间','demo-reset')+'</div>':''}<div class="room-heading"><div><span class="eyebrow">${{ host: "讲解者控制台", helper: "助教工作台", person: "参与者", screen: "匿名投屏" }[state.role]} / ${esc(code)}</span><h1>${esc(state.title)}</h1></div><span class="pill">${state.closed ? "已结束 · 记录只读" : "带练进行中"}</span></div>${state.announcement ? `<div class="announcement" role="status">公告：${esc(state.announcement)}</div>` : ""}${state.timer_end && state.role === "person" ? `<p class="muted">本轮剩余 <span id="countdown">${timerText()}</span></p>` : ""}${
     state.host
       ? `<nav class="tabs" aria-label="房间导航">${[
           ["live", "现场进度"],
@@ -562,6 +564,8 @@ async function actBase(action, id) {
   const i = allIssues().find((x) => x.id === id),
     s = current();
   switch (action) {
+    case 'demo-person':window.open('/?room='+code,'_blank','noopener');break;
+    case 'demo-reset':if(confirm('删除当前演示记录并创建新示范房间？')){await command('room.delete',{});await launchDemo()}break;
     case "state":
       if (!connected) throw Error("等待同步后再反馈");
       await command("status", { step: s.id, state: id, version: s.version });
@@ -922,9 +926,14 @@ document.addEventListener("visibilitychange", () => {
 setInterval(() => {
   if ($("#countdown")) $("#countdown").textContent = timerText();
 }, 1000);
+async function launchDemo(){const r=await request('/demo',{});localStorage.setItem(`${r.code}:host`,r.token);localStorage.setItem(`${r.code}:person`,r.participant_token);location.href=`/?room=${r.code}&host=1`}
+async function bootstrap(){try{demoMode=(await (await fetch('/api/config')).json()).demo_mode}catch{}
 if (!code) landing();
 else if (token) start();
 else if (role !== "person") {
   app.innerHTML =
     '<div class="error">本浏览器没有此身份凭证。请使用邀请链接，或在首页恢复身份。<a href="/">返回首页</a></div>';
 } else join();
+
+}
+bootstrap();

@@ -286,7 +286,21 @@ class Workshop:
                     str(data.get("id", data.get("step", ""))),
                     a["id"],
                     time.time(),
-                    json.dumps({"state": data.get("state")}, ensure_ascii=False),
+                    json.dumps(
+                        {
+                            key: data[key]
+                            for key in (
+                                "state",
+                                "reason",
+                                "decision",
+                                "person",
+                                "step",
+                                "id",
+                            )
+                            if key in data
+                        },
+                        ensure_ascii=False,
+                    ),
                 ),
             )
             result = {"ok": True, **(result or {})}

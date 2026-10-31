@@ -19,11 +19,17 @@ import qrcode.image.svg
 from storage import Database
 from workshop import Workshop, fail
 
+DEMO_MODE = os.getenv("DEMO_MODE", "0") == "1"
 DB = os.getenv("DATABASE_PATH", "data/workshop.sqlite3")
+if DEMO_MODE:
+    demo_path = os.getenv("DEMO_DATABASE_PATH", "data/demo.sqlite3")
+    if Path(demo_path).resolve() == Path(DB).resolve():
+        raise RuntimeError("演示数据库必须与正式数据库分开")
+    DB = demo_path
 database = Database(DB)
 service = Workshop(database)
 db = database.connect
-app = FastAPI(title="跟上了吗", version="0.3.0")
+app = FastAPI(title="跟上了吗", version="0.4.0")
 buckets = {}
 
 
@@ -68,7 +74,9 @@ class Recovery(BaseModel):
 @app.middleware("http")
 async def protections(request: Request, call_next):
     if request.method in ("POST", "DELETE"):
-        if request.url.path.endswith("/heartbeat"):
+        if request.url.path == "/api/rooms/demo":
+            category, maximum = "demo", 3
+        elif request.url.path.endswith("/heartbeat"):
             category, maximum = "heartbeat", 12
         elif (
             request.url.path.endswith("/join")
@@ -83,7 +91,7 @@ async def protections(request: Request, call_next):
         key = (
             category,
             token
-            if token and category != "entry"
+            if token and category not in ("entry", "demo")
             else (request.client.host if request.client else "unknown"),
         )
         now = time.monotonic()
@@ -128,7 +136,21 @@ async def protections(request: Request, call_next):
 def health():
     with db() as c:
         c.execute("SELECT 1")
-    return {"ok": True, "version": "0.3.0"}
+    return {"ok": True, "version": "0.4.0"}
+
+
+@app.get("/api/config")
+def configuration():
+    return {"demo_mode": DEMO_MODE, "version": "0.4.0"}
+
+
+@app.post("/api/rooms/demo")
+def demo_room():
+    if not DEMO_MODE:
+        fail("演示入口未启用", 404)
+    from demo import create_demo
+
+    return create_demo(service)
 
 
 @app.post("/api/rooms")
