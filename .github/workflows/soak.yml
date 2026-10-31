@@ -1,0 +1,21 @@
+name: Native 30 minute soak
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements-dev.txt -c requirements-lock.txt
+      - run: python scripts/soak.py --seconds 1800 --output data/soak-result.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-soak-result
+          path: data/soak-result.json
