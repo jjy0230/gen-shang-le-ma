@@ -21,7 +21,14 @@ def options(data):
         if not isinstance(entry, dict):
             fail("环境帮助格式无效")
         help_data[platform] = {"body": text(entry, "body", 1500), "link": link(entry)}
+    commands=source.get('commands',{})
+    if not isinstance(commands,dict) or set(commands)-set(PLATFORMS):fail('命令配置环境无效')
+    checked={}
+    for platform,entry in commands.items():
+        if not isinstance(entry,dict):fail('命令配置格式无效')
+        checked[platform]={'command':text(entry,'command',4000),'expected':text(entry,'expected',2000),'note':text(entry,'note',1000)}
     return {
+        "commands":checked,
         "kind": kind,
         "optional_task": text(source, "optional_task", 1500),
         "environment_help": help_data,

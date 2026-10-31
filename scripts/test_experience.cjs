@@ -12,3 +12,6 @@ context.connected=false;assert.match(context.nextParticipantAction(step),/连接
 context.allIssues=()=>[{kind:'blocker',mine:true,my_active:true,answers:[{}]}];assert.match(context.nextParticipantAction(step),/处理办法/);
 const html=context.clarificationCard({title:'解释',answers:[],count:2,acknowledged:0},true);assert.ok(!html.includes('仍受影响')&&!html.includes('人恢复'));
 console.log('Presentation state invariants passed');
+vm.runInContext(fs.readFileSync('static/resources-ui.js','utf8'),context);
+context.state.me.environment='windows';const commands={options:{commands:{unspecified:{command:'python --version'},windows:{command:'py --version'}}}};
+assert.equal(context.commandFor(commands).command,'py --version');context.state.me.environment='linux';assert.equal(context.commandFor(commands).command,'python --version');assert.equal(context.commandFor({options:{}}),null);

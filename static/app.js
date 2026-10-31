@@ -375,7 +375,7 @@ function render(preserve = true) {
       .querySelectorAll("input:not([type=file]),textarea,select")
       .forEach((e) => (saved[e.id] = e.value));
   const opened = [...document.querySelectorAll("details[open]")].map(
-      (e) => e.querySelector("summary")?.textContent,
+      (e) => e.dataset.keep || e.querySelector("summary")?.textContent,
     ),
     focus = document.activeElement?.id,
     selection = document.activeElement?.selectionStart;
@@ -404,12 +404,13 @@ function render(preserve = true) {
           .join("")}</nav>`
       : ""
   }${state.role === "screen" ? screenView() : staff ? views[page]() : participantView()}`;
+  app.insertAdjacentHTML("beforeend",resourcesWidget());
   Object.entries(saved).forEach(([id, value]) => {
     const el = document.getElementById(id);
     if (el) el.value = value;
   });
   document.querySelectorAll("details").forEach((e) => {
-    if (opened.includes(e.querySelector("summary")?.textContent)) e.open = true;
+    if (opened.includes(e.dataset.keep || e.querySelector("summary")?.textContent)) e.open = true;
   });
   if (focus && document.getElementById(focus)) {
     const el = document.getElementById(focus);
