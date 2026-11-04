@@ -2,7 +2,8 @@
 function issueNeedsAttention(i){if(i.stage==='closed')return false;if(i.kind==='clarification')return !i.answers.length||(i.acknowledged||0)<i.count;return i.affected>0}
 function nextParticipantAction(s){
  if(!connected)return '连接恢复后再反馈，未同步的操作不会显示为已完成。';
- if(state.closed||s.phase==='frozen')return '当前是历史记录；需要继续操作时请返回当前检查点。';
+ if(state.closed)return '本次带练已结束；可查看步骤记录，并导出自己的课后跟进事项。';
+ if(s.phase==='frozen')return '当前是历史记录；需要继续操作时请返回当前检查点。';
  if(s.skips?.some(x=>x.decision==='approved'))return '讲解者已批准本步暂不参与；无需提交本步进度，下一步会重新加入。';
  const correction=s.corrections?.at(-1);if(correction&&!correction.mine)return '先阅读本步更正说明，再确认收到；你原来的进度没有被重置。';
  const mine=allIssues().filter(i=>i.mine&&i.my_active&&i.kind!=='clarification');

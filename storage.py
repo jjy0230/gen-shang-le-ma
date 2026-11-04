@@ -14,7 +14,7 @@ class Database:
         if Path(path).exists():
             with sqlite3.connect(path) as source:
                 version = source.execute("PRAGMA user_version").fetchone()[0]
-                if version < 6:
+                if version < 7:
                     backup = str(path) + (
                         ".pre-v3.bak" if version < 3 else f".pre-v{version + 1}.bak"
                     )
@@ -47,6 +47,7 @@ class Database:
                     "announcement": "TEXT DEFAULT ''",
                     "timer_end": "REAL DEFAULT 0",
                     "resources": "TEXT DEFAULT '[]'",
+                    "handoff_until": "REAL DEFAULT 0",
                 },
                 "people": {
                     "joined": "REAL DEFAULT 0",
@@ -130,7 +131,7 @@ class Database:
                 )
                 c.execute("PRAGMA user_version=3")
 
-            c.execute("PRAGMA user_version=6")
+            c.execute("PRAGMA user_version=7")
 
     @contextmanager
     def connect(self, write=False):

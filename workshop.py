@@ -77,6 +77,8 @@ class Workshop:
             (code, token),
         ).fetchone()
         if a:
+            if r["closed"] and r["handoff_until"] and time.time() > r["handoff_until"]:
+                fail("参与者课后访问已到期，请联系讲解者", 403)
             return dict(a, role="person")
         fail("凭证无效、已撤销或已离开，请重新加入", 403)
 
@@ -324,17 +326,33 @@ class Workshop:
             return apply_feature(self, c, r, a, action, d)
         if action.startswith("room."):
             self.permit(a, "host")
-            if action=='room.resource.add':
-                resources=json.loads(r['resources'])
-                if len(resources)>=20:fail('每个房间最多 20 条资源')
-                url=link(d)
-                if not url:fail('请提供完整的资源链接')
-                resources.append({'id':uid(),'title':text(d,'title',100,True),'link':url,'description':text(d,'description',300)})
-                c.execute('UPDATE rooms SET resources=? WHERE code=?',(json.dumps(resources),code))
-            elif action=='room.resource.remove':
-                resources=json.loads(r['resources'])
-                if not any(x['id']==d.get('id') for x in resources):fail('资源不存在',404)
-                c.execute('UPDATE rooms SET resources=? WHERE code=?',(json.dumps([x for x in resources if x['id']!=d['id']]),code))
+            if action == "room.resource.add":
+                resources = json.loads(r["resources"])
+                if len(resources) >= 20:
+                    fail("每个房间最多 20 条资源")
+                url = link(d)
+                if not url:
+                    fail("请提供完整的资源链接")
+                resources.append(
+                    {
+                        "id": uid(),
+                        "title": text(d, "title", 100, True),
+                        "link": url,
+                        "description": text(d, "description", 300),
+                    }
+                )
+                c.execute(
+                    "UPDATE rooms SET resources=? WHERE code=?",
+                    (json.dumps(resources), code),
+                )
+            elif action == "room.resource.remove":
+                resources = json.loads(r["resources"])
+                if not any(x["id"] == d.get("id") for x in resources):
+                    fail("资源不存在", 404)
+                c.execute(
+                    "UPDATE rooms SET resources=? WHERE code=?",
+                    (json.dumps([x for x in resources if x["id"] != d["id"]]), code),
+                )
             elif action == "room.settings":
                 c.execute(
                     "UPDATE rooms SET expected=?,announcement=? WHERE code=?",
@@ -348,7 +366,10 @@ class Workshop:
                 )
             elif action == "room.close":
                 self.freeze(c, code)
-                c.execute("UPDATE rooms SET closed=1,timer_end=0 WHERE code=?", (code,))
+                c.execute(
+                    "UPDATE rooms SET closed=1,timer_end=0,handoff_until=? WHERE code=?",
+                    (now + 7 * 86400, code),
+                )
             elif action == "room.delete":
                 c.execute("DELETE FROM rooms WHERE code=?", (code,))
                 return {"ok": True}
@@ -361,7 +382,10 @@ class Workshop:
                     "INSERT INTO rooms(code,title,token,created,expected) VALUES(?,?,?,?,?)",
                     (newcode, r["title"] + " · 副本", token, now, r["expected"]),
                 )
-                c.execute("UPDATE rooms SET resources=? WHERE code=?",(r["resources"],newcode))
+                c.execute(
+                    "UPDATE rooms SET resources=? WHERE code=?",
+                    (r["resources"], newcode),
+                )
                 for n, s in enumerate(self.template(c, code)["steps"]):
                     c.execute(
                         "INSERT INTO steps(id,room,title,created,criteria,link,reasons,tips,phase,position,options) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
@@ -1015,7 +1039,8 @@ class Workshop:
                 "missing": max(0, r["expected"] - len(active)),
                 "announcement": r["announcement"],
                 "timer_end": r["timer_end"],
-                "resources":json.loads(r["resources"]),
+                "resources": json.loads(r["resources"]),
+                "handoff_until": r["handoff_until"],
                 "server_time": time.time(),
                 "steps": steps,
                 "current": next(

@@ -8,6 +8,7 @@ import os
 import time
 from pathlib import Path
 from collections import defaultdict, deque
+from typing import Literal
 
 from fastapi import FastAPI, Header, Request
 from fastapi.responses import Response, StreamingResponse
@@ -29,13 +30,14 @@ if DEMO_MODE:
 database = Database(DB)
 service = Workshop(database)
 db = database.connect
-app = FastAPI(title="跟上了吗", version="0.4.0")
+app = FastAPI(title="跟上了吗", version="0.5.0")
 buckets = {}
 
 
 class RoomInput(BaseModel):
     title: str = Field(min_length=1, max_length=80)
     expected: int = Field(default=0, ge=0, le=200)
+    template_name: Literal["blank", "python"] = "blank"
 
 
 class PersonInput(BaseModel):
@@ -136,12 +138,12 @@ async def protections(request: Request, call_next):
 def health():
     with db() as c:
         c.execute("SELECT 1")
-    return {"ok": True, "version": "0.4.0"}
+    return {"ok": True, "version": "0.5.0"}
 
 
 @app.get("/api/config")
 def configuration():
-    return {"demo_mode": DEMO_MODE, "version": "0.4.0"}
+    return {"demo_mode": DEMO_MODE, "version": "0.5.0"}
 
 
 @app.post("/api/rooms/demo")
@@ -155,7 +157,25 @@ def demo_room():
 
 @app.post("/api/rooms")
 def create(body: RoomInput):
-    return service.create(body.title, body.expected)
+    template = (
+        json.loads(
+            (Path(__file__).parent / "static/examples/python-setup.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        if body.template_name == "python"
+        else None
+    )
+    room = service.create(body.title, body.expected)
+    if template:
+        try:
+            service.command(
+                room["code"], room["token"], "template.import", {"template": template}
+            )
+        except BaseException:
+            service.command(room["code"], room["token"], "room.delete", {})
+            raise
+    return room
 
 
 @app.post("/api/rooms/{code}/join")
@@ -233,6 +253,20 @@ def template(code: str, authorization: str = Header(default="")):
     with db() as c:
         service.permit(service.auth(c, code, authorization), "host")
         return service.template(c, code)
+
+
+@app.get("/api/rooms/{code}/handoff")
+def personal_handoff(code: str, authorization: str = Header(default="")):
+    from handoff import participant_handoff
+
+    return participant_handoff(service, code, authorization)
+
+
+@app.get("/api/rooms/{code}/followup")
+def followup_export(code: str, authorization: str = Header(default="")):
+    from handoff import host_followup
+
+    return host_followup(service, code, authorization)
 
 
 @app.get("/api/rooms/{code}/report")
