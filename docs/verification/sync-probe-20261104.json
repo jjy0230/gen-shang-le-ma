@@ -1,0 +1,10 @@
+{
+  "observers": 30,
+  "writes": 10,
+  "samples": 300,
+  "submit_to_observer_p95_seconds": 1.035192499999539,
+  "max_seconds": 1.043773900004453,
+  "errors": [],
+  "passed": true,
+  "scope": "Native loopback HTTP + SSE; measured from before POST to each observer reading matching completion count. Not browser rendering, real phones, or weak-network proof."
+}
