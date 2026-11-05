@@ -1,0 +1,16 @@
+{
+  "duration_seconds": 1800.0,
+  "identities": 60,
+  "phases": [
+    10,
+    30,
+    60
+  ],
+  "http_requests": 7762,
+  "sse_frames": 11420,
+  "planned_reconnects": 440,
+  "http_p95_seconds": 0.41664279000019633,
+  "snapshot_to_receive_p95_seconds": 0.004621028900146484,
+  "errors": [],
+  "limits": "SSE latency measures snapshot serialization to receive, not mutation-to-observer latency. Loopback synthetic clients, not real phones/network."
+}
